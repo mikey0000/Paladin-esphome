@@ -1,0 +1,90 @@
+esphome:
+  name: paladin
+  includes:
+    - uart_read_line_sensor.h
+
+
+esp8266:
+  board: nodemcuv2
+
+mqtt:
+  broker: 
+  username: esphome
+  password: 
+  on_message:
+     - topic: paladin/command
+       then:
+        - uart.write: !lambda
+                      return std::vector<unsigned char>( x.begin(), x.end() );
+
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+
+api:
+  encryption:
+    key:
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Paladin Fallback Hotspot"
+    password: "xFEBDS60O1XD"
+
+captive_portal:
+    
+
+uart:
+  id: uart_bus
+  tx_pin:
+    number: GPIO15
+  rx_pin:
+    number: GPIO13
+  rx_buffer_size: 512
+  baud_rate: 57600
+
+
+text_sensor:
+- platform: custom
+  lambda: |-
+    auto my_custom_sensor = new UartReadLineSensor(id(uart_bus));
+    App.register_component(my_custom_sensor);
+    return {my_custom_sensor};
+  text_sensors:
+    id: "uart_readline"
+
+interval:
+  - interval: 1min
+    then:
+      - uart.write: "R"
+
+
+sensor:
+  - platform: template
+    name: Hot Water Temperature
+    id: cylinder_temperature
+    unit_of_measurement: "°C"
+    device_class: "temperature"
+    state_class: "measurement"
+    lambda: |-
+      if (id(uart_readline).state != "-1") {
+        String state = String(id(uart_readline).state.c_str());
+        int firstIndex = state.indexOf(',');
+        int secondIndex = state.substring(firstIndex+1).indexOf(',');
+        int third = state.substring(firstIndex+secondIndex+2).indexOf(',');
+        ESP_LOGD("lambda","Hot water temp %s", String(state.substring(firstIndex+secondIndex+2, firstIndex+secondIndex+third+2).c_str()));
+        double temp = atof(state.substring(firstIndex+secondIndex+2, firstIndex+secondIndex+third+2).c_str());
+        if(temp > 100 || temp < 0){
+          return NAN;
+        }
+        return atof(state.substring(firstIndex+secondIndex+2, firstIndex+secondIndex+third+2).c_str());
+      }
+      return NAN;
