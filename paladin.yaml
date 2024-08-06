@@ -92,8 +92,8 @@ uart:
             id(paladin_delta_t).publish_state(sensors_values[4]);
             id(paladin_min_temp).publish_state(sensors_values[5]);
             id(paladin_max_temp).publish_state(sensors_values[6]);
-            id(paladin_select_min_temp).publish_state(std::to_string(sensors_values[5]));
-            id(paladin_select_max_temp).publish_state(std::to_string(sensors_values[6]));
+            id(paladin_select_min_temp).publish_state(std::to_string((int)sensors_values[5]));
+            id(paladin_select_max_temp).publish_state(std::to_string((int)sensors_values[6]));
             id(paladin_grid_in).publish_state(sensors_values[7]);
             id(paladin_grid_out).publish_state(sensors_values[8]);
             id(paladin_transfer).publish_state(sensors_values[9]);
@@ -124,6 +124,7 @@ interval:
             std::vector<unsigned char> data(seconds_str.begin(), seconds_str.end());
             id(uart_bus).write_array(data.data(), data.size());
           }
+
 
 
 sensor:
@@ -307,139 +308,7 @@ binary_sensor:
   - platform: template
     name: "Flag - Export before Transfer"
     id: "paladin_offset_flag"
-    
 
-  - platform: template
-    name: "Hot Water Boost Control"
-    id: hot_water_boost_control
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "B"  # One-time boost to 60C
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "b"  # Cancel Health Hours boost
-
-  - platform: template
-    name: "Charger Control"
-    id: paladin_charger_control
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "C"  # Enable battery Charger
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "c"  # Disable battery Charger
-
-  - platform: template
-    name: "Force Solar Export"
-    id: force_solar_export
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "E"  # Enable solar Export
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "e"  # Disable solar Export
-
-  - platform: template
-    name: "CT OverFlow Control"
-    id: ct_overflow_control
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "F"  # Force higher overFlow value
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "f"  # Revert to normal overFlow
-
-  - platform: template
-    name: "Health Checking Control"
-    id: health_checking_control
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "H"  # Enable Health Checking
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "h"  # Disable Health Checking
-
-  - platform: template
-    name: "Inverter Status"
-    id: paladin_inverter_status
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "I"  # Inverter ON
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "i"  # Inverter OFF
-
-  - platform: template
-    name: "Stop All SSR Activity"
-    id: paladin_ssr_activity
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "p"  # Enable all SSR activity
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "P"  # Stop all SSR activity
-
-  - platform: template
-    name: "Ramp Up on TopUp"
-    id: paladin_ramp_up
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "J"  # Enable Ramp Up
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "j"  # Disable Ramp Up
-
-  - platform: template
-    name: "Back Light Control"
-    id: paladin_backlight_control
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "S"  # Screen ON
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "s"  # Screen OFF
-
-  - platform: template
-    name: "5400W Limit"
-    id: paladin_watt_limit
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "W"  # Enable 5400W Limit
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "w"  # Disable 5400W Limit
-
-  - platform: template
-    name: "Export Limit"
-    id: paladin_export_limit
-    on_press:
-      - uart.write:
-          id: uart_bus
-          data: "~"  # Enable Export Limit
-    on_release:
-      - uart.write:
-          id: uart_bus
-          data: "!"  # Disable Export Limit
 
 button:
   - platform: template
@@ -465,3 +334,138 @@ button:
       - uart.write:
           id: uart_bus
           data: "Z"  # Soft Reset
+
+
+switch:
+
+  - platform: template
+    name: "Hot Water Boost Control"
+    id: hot_water_boost_control
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "B"  # One-time boost to 60C
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "b"  # Cancel Health Hours boost
+
+  - platform: template
+    name: "Charger Control"
+    id: paladin_charger_control
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "C"  # Enable battery Charger
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "c"  # Disable battery Charger
+
+  - platform: template
+    name: "Force Solar Export"
+    id: force_solar_export
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "E"  # Enable solar Export
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "e"  # Disable solar Export
+
+  - platform: template
+    name: "CT OverFlow Control"
+    id: ct_overflow_control
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "F"  # Force higher overFlow value
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "f"  # Revert to normal overFlow
+
+  - platform: template
+    name: "Health Checking Control"
+    id: health_checking_control
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "H"  # Enable Health Checking
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "h"  # Disable Health Checking
+
+  - platform: template
+    name: "Inverter Status"
+    id: paladin_inverter_status
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "I"  # Inverter ON
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "i"  # Inverter OFF
+
+  - platform: template
+    name: "Stop All SSR Activity"
+    id: paladin_ssr_activity
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "p"  # Enable all SSR activity
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "P"  # Stop all SSR activity
+
+  - platform: template
+    name: "Ramp Up on TopUp"
+    id: paladin_ramp_up
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "J"  # Enable Ramp Up
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "j"  # Disable Ramp Up
+
+  - platform: template
+    name: "Back Light Control"
+    id: paladin_backlight_control
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "S"  # Screen ON
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "s"  # Screen OFF
+
+  - platform: template
+    name: "5400W Limit"
+    id: paladin_watt_limit
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "W"  # Enable 5400W Limit
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "w"  # Disable 5400W Limit
+
+  - platform: template
+    name: "Export Limit"
+    id: paladin_export_limit
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "~"  # Enable Export Limit
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "!"  # Disable Export Limit
