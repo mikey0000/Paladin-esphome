@@ -54,14 +54,35 @@ time:
     #   - pool.ntp.org 
 
 captive_portal:
+
+esp32_ble_tracker:
+  scan_parameters:
+    # We currently use the defaults to ensure Bluetooth
+    # can co-exist with WiFi In the future we may be able to
+    # enable the built-in coexistence logic in ESP-IDF
+    active: true
+
+bluetooth_proxy:
+  active: true
+    
+
+globals:
+  - id: min_temp_prev
+    type: std::string
+    restore_value: no
+    initial_value: ""
+  - id: max_temp_prev
+    type: std::string
+    restore_value: no
+    initial_value: ""
     
 
 uart:
   id: uart_bus
   tx_pin:
-    number: GPIO15
+    number: GPIO17
   rx_pin:
-    number: GPIO13
+    number: GPIO16
   rx_buffer_size: 256
   baud_rate: 57600
   debug:
@@ -92,8 +113,6 @@ uart:
             id(paladin_delta_t).publish_state(sensors_values[4]);
             id(paladin_min_temp).publish_state(sensors_values[5]);
             id(paladin_max_temp).publish_state(sensors_values[6]);
-            id(paladin_select_min_temp).publish_state(std::to_string((int)sensors_values[5]));
-            id(paladin_select_max_temp).publish_state(std::to_string((int)sensors_values[6]));
             id(paladin_grid_in).publish_state(sensors_values[7]);
             id(paladin_grid_out).publish_state(sensors_values[8]);
             id(paladin_transfer).publish_state(sensors_values[9]);
@@ -106,7 +125,12 @@ uart:
             id(paladin_allow_import_flag).publish_state(sensors_values[17]);
             id(paladin_offset_flag).publish_state(sensors_values[18]);
             id(paladin_time_hack).publish_state(sensors_values[19]);
+            id(paladin_select_min_temp).publish_state(std::to_string((int)sensors_values[5]));
+            id(paladin_select_max_temp).publish_state(std::to_string((int)sensors_values[6]));
           }
+
+
+      
 
 interval:
   - interval: 5s
@@ -124,7 +148,6 @@ interval:
             std::vector<unsigned char> data(seconds_str.begin(), seconds_str.end());
             id(uart_bus).write_array(data.data(), data.size());
           }
-
 
 
 sensor:
@@ -212,9 +235,17 @@ select:
       - "83"
       - "88"
     initial_option: "73"
-    set_action:
+    on_value:
       then:
         - lambda: |-
+            std::string current_value = id(paladin_select_max_temp).state.c_str();
+            
+            if (current_value == id(max_temp_prev)) {
+              return;
+            }
+
+            id(max_temp_prev) = current_value;
+
             char buf[2];
             buf[1] = '\0';
             if (x == "10") {
@@ -243,9 +274,17 @@ select:
       - "50"
       - "60"
     initial_option: "30"
-    set_action:
+    on_value:
       then:
         - lambda: |-
+            std::string current_value = id(paladin_select_min_temp).state.c_str();
+            
+            if (current_value == id(min_temp_prev)) {
+              return;
+            }
+
+            id(min_temp_prev) = current_value;
+
             char buf[2];
             buf[1] = '\0';
             if (x == "10") {
@@ -275,7 +314,7 @@ select:
       - "5000W"
       - "6000W"
     initial_option: "1000W"
-    set_action:
+    on_value:
       then:
         - lambda: |-
             char buf[2];
@@ -335,12 +374,16 @@ button:
           id: uart_bus
           data: "Z"  # Soft Reset
 
+  - platform: restart
+    name: "Paladin Restart"
+
 
 switch:
 
   - platform: template
     name: "Hot Water Boost Control"
     id: hot_water_boost_control
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -365,6 +408,7 @@ switch:
   - platform: template
     name: "Force Solar Export"
     id: force_solar_export
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -377,6 +421,7 @@ switch:
   - platform: template
     name: "CT OverFlow Control"
     id: ct_overflow_control
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -389,6 +434,7 @@ switch:
   - platform: template
     name: "Health Checking Control"
     id: health_checking_control
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -413,6 +459,7 @@ switch:
   - platform: template
     name: "Stop All SSR Activity"
     id: paladin_ssr_activity
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -425,6 +472,7 @@ switch:
   - platform: template
     name: "Ramp Up on TopUp"
     id: paladin_ramp_up
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -437,6 +485,7 @@ switch:
   - platform: template
     name: "Back Light Control"
     id: paladin_backlight_control
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
@@ -449,6 +498,7 @@ switch:
   - platform: template
     name: "5400W Limit"
     id: paladin_watt_limit
+    optimistic: true
     turn_on_action:
       - uart.write:
           id: uart_bus
